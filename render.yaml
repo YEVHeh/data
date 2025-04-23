@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: data-leak-bot
+    env: python
+    plan: free
+    buildCommand: ""
+    startCommand: python bot.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: WEBHOOK_HOST
+        sync: false

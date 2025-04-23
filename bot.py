@@ -6,10 +6,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher(bot)
+
+WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
+WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     await message.reply("Welcome! Send me your email to check for leaks.")
@@ -21,10 +25,6 @@ async def on_startup(dispatcher):
 async def on_shutdown(dispatcher):
     print("Bot shutting down")
 
-WEBHOOK_HOST = os.getenv("WEBHOOK_HOST")
-WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
-WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
-
 WEBAPP_HOST = "0.0.0.0"
 WEBAPP_PORT = int(os.getenv("PORT", 3000))
 
@@ -35,6 +35,7 @@ if __name__ == "__main__":
         on_startup=on_startup,
         on_shutdown=on_shutdown,
         skip_updates=True,
-        host="0.0.0.0",
+        host="0.0.0.0",  # or use your actual host
         port=int(os.environ.get("PORT", 5000)),
     )
+

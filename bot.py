@@ -39,17 +39,17 @@ async def check_leaks(email):
 
 @dp.message_handler(commands=["start"])
 async def send_welcome(message: types.Message):
-    await message.reply("Привіт! Надішли свій email, перевірю його на зливи.")
+    await message.reply("Hi! Send me your email and I’ll check if it was leaked.")
 
 @dp.message_handler()
 async def handle_email(message: types.Message):
     email = message.text.strip()
     
     if not is_valid_email(email):
-        await message.reply("❌ Неправильна email-адреса.")
+        await message.reply("❌ Invalid email address.")
         return
 
-    await message.reply("🔍 Перевіряю...")
+    await message.reply("🔍 Checking...")
     try:
         result = await check_leaks(email)
 
@@ -58,12 +58,12 @@ async def handle_email(message: types.Message):
 
         if result:
             await message.reply(
-                f"⚠️ Email знайдено в {len(result)} зливах.\nЗахисти себе 👉 https://CPA-link.com"
+                f"⚠️ This email was found in {len(result)} breaches.\nProtect yourself 👉 https://CPA-link.com"
             )
         else:
-            await message.reply("✅ Усе чисто! Зливів не знайдено.")
+            await message.reply("✅ All clear! No leaks detected.")
     except Exception as e:
-        await message.reply(f"❗ Помилка: {str(e)}")
+        await message.reply(f"❗ Error: {str(e)}")
 
 # ============ WEBHOOK ============
 

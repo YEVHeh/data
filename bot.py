@@ -1,24 +1,23 @@
 import os
 import re
 import aiohttp
+import asyncio
+from aiogram import Bot, Dispatcher, Router, types
+from aiogram.filters import CommandStart
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 from dotenv import load_dotenv
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 HIBP_API_KEY = os.getenv("HIBP_API_KEY")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # твоя URL Render
-
-WEBHOOK_PATH = f"/webhook/{BOT_TOKEN}"
-WEBHOOK_FULL_URL = f"{WEBHOOK_URL}{WEBHOOK_PATH}"
-WEBAPP_HOST = "0.0.0.0"
-WEBAPP_PORT = int(os.getenv("PORT", 8000))
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # ваша URL-адреса для вебхука
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+router = Router()
+dp.include_router(router)
 
 def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email)
@@ -38,17 +37,17 @@ async def check_leaks(email):
             else:
                 raise Exception(f"API error: {resp.status}")
 
-@dp.message(commands=["start"])
+@router.message(CommandStart())
 async def send_welcome(message: types.Message):
-    await message.answer("Привіт! Надішли свою електронну адресу, і я перевірю, чи була вона скомпрометована.")
+    await message.reply("Привіт! Надішли свою електронну адресу, і я перевірю, чи була вона скомпрометована.")
 
-@dp.message(F.text)
+@router.message()
 async def handle_email(message: types.Message):
     email = message.text.strip()
-    await message.answer("🔍 Перевіряю...")
+    await message.reply("🔍 Перевіряю...")
 
     if not is_valid_email(email):
-        await message.answer("❌ Невірна електронна адреса.")
+        await message.reply("❌ Невірна електронна адреса.")
         return
 
     try:
@@ -58,28 +57,36 @@ async def handle_email(message: types.Message):
             f.write(f"{email}\n")
 
         if result:
-            await message.answer(
+            await message.reply(
                 f"⚠️ Ця електронна адреса була знайдена в {len(result)} порушеннях безпеки.\nЗахисти себе 👉 https://CPA-link.com"
             )
         else:
-            await message.answer("✅ Все гаразд! Порушень не виявлено.")
+            await message.reply("✅ Все гаразд! Порушень не виявлено.")
     except Exception as e:
-        await message.answer(f"❗ Помилка: {str(e)}")
+        await message.reply(f"❗ Помилка: {str(e)}")
 
-# ===== WEBHOOK INTEGRATION =====
+async def on_startup(bot: Bot):
+    await bot.set_webhook(f"{WEBHOOK_URL}/webhook/{BOT_TOKEN}")
 
-async def on_startup(app):
-    await bot.set_webhook(WEBHOOK_FULL_URL)
-
-async def on_shutdown(app):
+async def on_shutdown(bot: Bot):
     await bot.delete_webhook()
 
-app = web.Application()
-app.on_startup.append(on_startup)
-app.on_shutdown.append(on_shutdown)
-
-SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
-setup_application(app, dp, bot=bot)
+async def main():
+    app = web.Application()
+    SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=f"/webhook/{BOT_TOKEN}")
+    setup_application(app, dp, bot=bot)
+    await on_startup(bot)
+    try:
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 8000)))
+        await site.start()
+        print("Bot is running...")
+        while True:
+            await asyncio.sleep(3600)
+    finally:
+        await on_shutdown(bot)
 
 if __name__ == "__main__":
-    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
+    asyncio.run(main())
+

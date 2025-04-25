@@ -39,13 +39,14 @@ async def check_leaks(email):
 
 @dp.message_handler(commands=["start"])
 async def send_welcome(message: types.Message):
-    print("START command received")  # 👈 Це важливо
+    print("==> /start received")
     await message.reply("Hi! Send me your email and I’ll check if it was leaked.")
-
 
 @dp.message_handler()
 async def handle_email(message: types.Message):
-    print(f"Received message: {message.text}")  # 👈 Це теж
+    print(f"==> Message received: {message.text}")
+    await message.reply("🔍 Checking...")
+
 
     
     if not is_valid_email(email):
